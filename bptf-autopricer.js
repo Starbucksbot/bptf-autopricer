@@ -54,8 +54,8 @@ const cn = {
 const db = pgp(cn);
 
 // ColumnSet object for insert queries.
-const cs = new pgp.helpers.ColumnSet(['name', 'sku', 'currencies', 'intent', 'updated', 'steamid'], {
-    table: 'listings'
+const cs = new pgp.helpers.ColumnSet(['sku', 'keys', 'metal', 'time', 'steamid', 'deleted', 'automated', 'blacklisted', 'scm'], {
+    table: 'tf2.snapshot'
 });
 
 if (fs.existsSync(SCHEMA_PATH)) {
@@ -294,7 +294,7 @@ function handleEvent(e) {
                                     `| UPDATING PRICES |: Couldn't price ${response_item.name}. Issue with retrieving this items defindex.`
                                 );
                             }
-                            insertListing(response_item, sku, currencies, intent, steamid);
+                            insertSnapshot(response_item, sku, currencies, intent, steamid);
                         } catch (e) {
                             console.log(e);
                             console.log("Couldn't create a price for " + response_item.name);
@@ -363,18 +363,18 @@ schemaManager.init(async function(err) {
     }, 15 * 60 * 1000); // Every 15 minutes.
 });
 
-const getListings = async (name, intent) => {
-    return await db.result(`SELECT * FROM listings WHERE name = $1 AND intent = $2`, [name, intent]);
+const getSnapshots = async (name, intent) => {
+    return await db.result(`SELECT * FROM tf2.snapshot WHERE sku = $1`, [name, intent]);
 };
 
-const insertListing = async (response_item, sku, currencies, intent, steamid) => {
+const insertSnapshot = async (response_item, sku, currencies, intent, steamid) => {
     let timestamp = Math.floor(Date.now() / 1000);
     return await db.none(
-        `INSERT INTO listings (name, sku, currencies, intent, updated, steamid)\
+        `INSERT INTO snapshots (name, sku, currencies, intent, updated, steamid)\
          VALUES ($1, $2, $3, $4, $5, $6)\
          ON CONFLICT (name, sku, intent, steamid)\
          DO UPDATE SET currencies = $3, updated = $5;`,
-        [response_item.name, sku, JSON.stringify(currencies), intent, timestamp, steamid]
+        [sku, currencies.keys || 0, currencies.metal || 0, timestamp, steamid, false, false, false, 0]
     );
 };
 
@@ -490,7 +490,7 @@ const deleteOldListings = async () => {
 };
 
 const deleteRemovedListing = async (steamid, name, intent) => {
-    return await db.any(`DELETE FROM listings WHERE steamid = $1 AND name = $2 AND intent = $3;`, [
+    return await db.any(`DELETE FROM tf2.snapshot WHERE steamid = $1 AND sku = $2;`, [
         steamid,
         name,
         intent

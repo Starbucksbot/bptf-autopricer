@@ -1,0 +1,26 @@
+CREATE SCHEMA tf2 AUTHORIZATION postgres;
+
+CREATE TABLE tf2.listings
+(
+    name character varying NOT NULL,
+    sku character varying NOT NULL,
+    currencies json NOT NULL,
+    intent character varying NOT NULL,
+    updated bigint NOT NULL,
+    steamid character varying NOT NULL,
+    PRIMARY KEY (name, sku, intent, steamid)
+);
+
+CREATE TABLE tf2.snapshot
+(
+    sku VARCHAR(64) NOT NULL,
+    keys INTEGER NOT NULL,
+    metal INTEGER NOT NULL,
+    time BIGINT NOT NULL,
+    steamid VARCHAR(32) NOT NULL,
+    deleted BOOLEAN DEFAULT FALSE,
+    automated BOOLEAN DEFAULT FALSE,
+    blacklisted BOOLEAN DEFAULT FALSE,
+    scm INTEGER NOT NULL,
+    PRIMARY KEY (sku, steamid, time)
+);

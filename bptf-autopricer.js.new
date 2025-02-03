@@ -1,0 +1,65 @@
+const ReconnectingWebSocket = require('reconnecting-websocket');
+const ws = require('ws');
+const fs = require('fs');
+const chokidar = require('chokidar');
+
+const methods = require('./methods');
+const Methods = new methods();
+const { insertSnapshotData } = require('./API/database/snapshot');
+
+const Schema = require('@tf2autobot/tf2-schema');
+
+// Rest of existing imports...
+
+const insertListings = async (unformattedListings, sku, name) => {
+    // If there are no listings from the snapshot just return. No update can be done.
+    if (!unformattedListings) {
+        throw new Error(`No listings found for ${name} in the snapshot. The name: '${name}' likely doesn't match the version on the items bptf listings page.`);
+    }
+    try {
+        // Calculate timestamp once, no point doing it for each iteration.
+        const time = Math.floor(Date.now() / 1000) - 60;
+
+        for (const listing of unformattedListings) {
+            // Skip listings with excluded descriptions (spelled items)
+            if (
+                listing.details && 
+                excludedListingDescriptions.some(detail =>
+                    new RegExp(`\\b${detail}\\b`, 'i').test(
+                        listing.details.normalize('NFKD').toLowerCase().trim()
+                    )
+                )
+            ) {
+                continue;
+            }
+
+            // Skip painted items
+            if (listing.item?.attributes && listing.item.attributes.some(attribute => {
+                return typeof attribute === 'object' && 
+                    attribute.float_value && 
+                    Object.values(blockedAttributes).map(String).includes(String(attribute.float_value)) &&
+                    !Object.keys(blockedAttributes).some(key => name.includes(key));
+            })) {
+                continue;
+            }
+
+            const currencies = listing.currencies || {};
+            const snapshotData = {
+                sku: sku,
+                keys: currencies.keys || 0,
+                metal: Math.floor(currencies.metal || 0),
+                time: time,
+                steamid: listing.steamid,
+                deleted: false,
+                automated: !!listing.userAgent,
+                blacklisted: config.excludedSteamIDs.includes(listing.steamid),
+                scm: listing.item?.craftable ? 1 : 0
+            };
+            
+            await insertSnapshotData(snapshotData);
+        }
+    } catch (error) {
+        console.error('Error in insertListings:', error);
+        throw error;
+    }
+};
