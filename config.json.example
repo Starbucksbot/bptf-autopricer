@@ -1,0 +1,13 @@
+{
+    "database": {
+        "host": "localhost",
+        "port": 5432,
+        "name": "bptf_autopricer",
+        "user": "postgres",
+        "password": "your_password"
+    },
+    "bptfAPIKey": "your_backpack_tf_api_key",
+    "bptfToken": "your_backpack_tf_token",
+    "steamAPIKey": "your_steam_api_key",
+    "pricerPort": 3456
+}
