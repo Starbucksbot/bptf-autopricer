@@ -1,8 +1,17 @@
 const express = require('express');
+const { SnapshotQueue } = require('./database/snapshot-queue');
+const { SnapshotFetcher } = require('./database/snapshot-fetcher');
 const http = require('http');
 const socketIO = require('socket.io');
 
 const app = express();
+
+// Initialize and start the snapshot system
+const snapshotQueue = new SnapshotQueue();
+const snapshotFetcher = new SnapshotFetcher(snapshotQueue);
+
+snapshotQueue.start();
+snapshotFetcher.start();
 const server = http.createServer(app);
 const io = socketIO(server);
 
